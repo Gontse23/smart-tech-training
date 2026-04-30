@@ -468,6 +468,7 @@ const clientDist = path.resolve(__dirname, "../../client/dist");
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(clientDist));
+}
   app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
