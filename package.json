@@ -1,0 +1,35 @@
+{
+  "name": "smart-tech-training",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Smart Tech Training full-stack mentor-led tech learning platform.",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "vite client --host 0.0.0.0 --port 5199 --strictPort",
+    "server": "node --watch server/src/index.js",
+    "start": "node server/src/index.js",
+    "build": "vite build client",
+    "preview": "vite preview client --host 0.0.0.0 --port 4173"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "bcryptjs": "^3.0.2",
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.552.0",
+    "recharts": "^3.3.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.5",
+    "vite": "^7.1.12"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18"
+  }
+}

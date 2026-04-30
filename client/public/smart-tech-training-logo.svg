@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="96" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">Smart Tech Training logo</title>
+  <desc id="desc">A blue and green technology mark with the Smart Tech Training wordmark.</desc>
+  <defs>
+    <linearGradient id="markGradient" x1="8" y1="8" x2="80" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00A8FF" />
+      <stop offset="1" stop-color="#39FF88" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="20" fill="url(#markGradient)" />
+  <path
+    d="M61.5 30H42.2C35.9 30 32 33.7 32 38.7C32 43.8 36 46.9 41.9 46.9H54.1C60.3 46.9 64 50.7 64 55.8C64 61.5 59.5 65 52.8 65H32.8"
+    fill="none"
+    stroke="#F8FDFF"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="7"
+  />
+  <path d="M62 32.5H73V43.5" fill="none" stroke="#062239" stroke-linecap="round" stroke-linejoin="round" stroke-width="5" />
+  <path d="M32.5 63.5H21.5V52.5" fill="none" stroke="#062239" stroke-linecap="round" stroke-linejoin="round" stroke-width="5" />
+  <circle cx="73" cy="43.5" r="4.5" fill="#F8FDFF" />
+  <circle cx="21.5" cy="52.5" r="4.5" fill="#F8FDFF" />
+  <text x="108" y="43" fill="#F8FDFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="800">Smart Tech</text>
+  <text x="108" y="70" fill="#9DB6C9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Training</text>
+</svg>
