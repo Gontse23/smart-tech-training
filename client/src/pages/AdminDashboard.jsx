@@ -8,10 +8,12 @@ import { Icon } from "../utils/icons.js";
 
 const tabs = ["Analytics", "Users", "Courses", "Quizzes", "Payments", "Certification Prep", "Pricing"];
 const pieColors = ["#39FF88", "#00A8FF", "#D7FF3F", "#105D43"];
+const emptyUserForm = { name: "", email: "", password: "", role: "learner", planId: "starter", courseId: "" };
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("Analytics");
+  const [userForm, setUserForm] = useState(emptyUserForm);
   const [courseForm, setCourseForm] = useState({ title: "", description: "", duration: "4 weeks", level: "Beginner", difficulty: "Beginner", category: "Tech Training" });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -30,9 +32,25 @@ export default function AdminDashboard() {
 
   useEffect(load, []);
 
+  const createUser = async (event) => {
+    event.preventDefault();
+    setActionLoading(true);
+    setError("");
+    try {
+      await apiFetch("/api/admin/users", { method: "POST", body: userForm });
+      setUserForm(emptyUserForm);
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const createCourse = async (event) => {
     event.preventDefault();
     setActionLoading(true);
+    setError("");
     try {
       await apiFetch("/api/admin/courses", { method: "POST", body: courseForm });
       setCourseForm({ title: "", description: "", duration: "4 weeks", level: "Beginner", difficulty: "Beginner", category: "Tech Training" });
@@ -46,6 +64,7 @@ export default function AdminDashboard() {
 
   const deleteCourse = async (courseId) => {
     setActionLoading(true);
+    setError("");
     try {
       await apiFetch(`/api/admin/courses/${courseId}`, { method: "DELETE" });
       load();
@@ -118,18 +137,108 @@ export default function AdminDashboard() {
       ) : null}
 
       {tab === "Users" ? (
-        <article className="panel">
-          <Table
-            columns={["Name", "Email", "Role", "Plan", "Joined"]}
-            rows={data.users.map((user) => [
-              user.name,
-              user.email,
-              user.role,
-              user.planId,
-              new Date(user.joinedAt).toLocaleDateString("en-ZA")
-            ])}
-          />
-        </article>
+        <div className="admin-two-col">
+          <form className="panel admin-form" onSubmit={createUser}>
+            <div className="panel-heading">
+              <div>
+                <span>User management</span>
+                <h3>Add account</h3>
+              </div>
+            </div>
+            <label>
+              Full name
+              <input
+                value={userForm.name}
+                onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))}
+                required
+              />
+            </label>
+            <label>
+              Email
+              <input
+                type="email"
+                value={userForm.email}
+                onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                minLength={8}
+                value={userForm.password}
+                onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+                required
+              />
+            </label>
+            <label>
+              Role
+              <select
+                value={userForm.role}
+                onChange={(event) =>
+                  setUserForm((current) => ({
+                    ...current,
+                    role: event.target.value,
+                    courseId: event.target.value === "admin" ? "" : current.courseId
+                  }))
+                }
+                required
+              >
+                <option value="learner">Learner</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+            <label>
+              Package
+              <select
+                value={userForm.planId}
+                onChange={(event) => setUserForm((current) => ({ ...current, planId: event.target.value }))}
+                required
+              >
+                {data.pricingPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} - R{plan.price.toLocaleString("en-ZA")} / {plan.cadence}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {userForm.role === "learner" ? (
+              <label>
+                Course
+                <select
+                  value={userForm.courseId}
+                  onChange={(event) => setUserForm((current) => ({ ...current, courseId: event.target.value }))}
+                  required
+                >
+                  <option value="">Select learner course</option>
+                  {data.courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title} - {course.duration}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <button className="button button-primary" type="submit" disabled={actionLoading}>
+              <Icon name="Plus" size={16} />
+              Add account
+            </button>
+          </form>
+          <article className="panel">
+            <Table
+              columns={["Name", "Email", "Role", "Package", "Course", "Joined"]}
+              rows={data.users.map((user) => [
+                user.name,
+                user.email,
+                user.role,
+                user.planName,
+                user.enrolledCourses?.join(", ") || "Not enrolled",
+                new Date(user.joinedAt).toLocaleDateString("en-ZA")
+              ])}
+            />
+          </article>
+        </div>
       ) : null}
 
       {tab === "Courses" ? (

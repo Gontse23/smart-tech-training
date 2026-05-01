@@ -16,6 +16,10 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5199",
   "https://smart-tech-training.vercel.app",
+  ...(process.env.CLIENT_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
 ];
 
 app.use(cors({
@@ -28,8 +32,24 @@ function findCourse(db, courseId) {
   return db.courses.find((course) => course.id === courseId);
 }
 
+function findPlan(db, planId) {
+  return db.pricingPlans.find((plan) => plan.id === planId);
+}
+
 function getUserProgress(db, userId, courseId) {
   return db.progress.find((record) => record.userId === userId && record.courseId === courseId);
+}
+
+function createProgressRecord(userId, course) {
+  return {
+    userId,
+    courseId: course.id,
+    enrolledAt: new Date().toISOString(),
+    currentLessonId: course.chapters[0]?.lessons[0]?.id || null,
+    completedLessons: [],
+    completedQuizzes: [],
+    updatedAt: new Date().toISOString()
+  };
 }
 
 function findQuizContext(db, quizId) {
@@ -98,23 +118,35 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.post("/api/auth/register", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, courseId, planId } = req.body;
   const db = readDb();
+  const learnerName = String(name || "").trim();
+  const emailAddress = String(email || "").trim().toLowerCase();
+  const selectedCourse = findCourse(db, courseId);
+  const selectedPlan = findPlan(db, planId);
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "Name, email, and password are required." });
+  if (!learnerName || !emailAddress || !password || !courseId || !planId) {
+    return res.status(400).json({ message: "Name, email, password, course, and package are required." });
   }
 
-  if (db.users.some((user) => user.email.toLowerCase() === email.toLowerCase())) {
+  if (!selectedCourse) {
+    return res.status(400).json({ message: "Please choose a valid course." });
+  }
+
+  if (!selectedPlan) {
+    return res.status(400).json({ message: "Please choose a valid package." });
+  }
+
+  if (db.users.some((user) => user.email.toLowerCase() === emailAddress)) {
     return res.status(409).json({ message: "A user with that email already exists." });
   }
 
   const user = {
     id: uid("user"),
-    name,
-    email,
+    name: learnerName,
+    email: emailAddress,
     role: "learner",
-    planId: "starter",
+    planId: selectedPlan.id,
     passwordHash: await bcrypt.hash(password, 10),
     joinedAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
@@ -126,15 +158,7 @@ app.post("/api/auth/register", async (req, res) => {
   };
 
   db.users.push(user);
-  db.progress.push({
-    userId: user.id,
-    courseId: "course-data-analyst-roadmap",
-    enrolledAt: new Date().toISOString(),
-    currentLessonId: "lesson-what-is-data-analysis",
-    completedLessons: [],
-    completedQuizzes: [],
-    updatedAt: new Date().toISOString()
-  });
+  db.progress.push(createProgressRecord(user.id, selectedCourse));
   writeDb(db);
 
   res.status(201).json({ token: signToken(user), user: publicUser(user) });
@@ -394,7 +418,14 @@ app.get("/api/admin/summary", requireAuth, requireAdmin, (req, res) => {
       revenue,
       certificationTracks: db.certificationTracks?.length || 0
     },
-    users: db.users.map(publicUser),
+    users: db.users.map((user) => ({
+      ...publicUser(user),
+      planName: findPlan(db, user.planId)?.name || user.planId || "None",
+      enrolledCourses: db.progress
+        .filter((record) => record.userId === user.id)
+        .map((record) => findCourse(db, record.courseId)?.title)
+        .filter(Boolean)
+    })),
     courses: db.courses,
     quizzes: db.quizzes.map((quiz) => ({
       id: quiz.id,
@@ -418,6 +449,60 @@ app.get("/api/admin/summary", requireAuth, requireAdmin, (req, res) => {
       }))
     }
   });
+});
+
+app.post("/api/admin/users", requireAuth, requireAdmin, async (req, res) => {
+  const { name, email, password, role = "learner", planId, courseId } = req.body;
+  const db = readDb();
+  const userName = String(name || "").trim();
+  const emailAddress = String(email || "").trim().toLowerCase();
+  const selectedRole = role === "admin" ? "admin" : "learner";
+  const selectedPlan = findPlan(db, planId);
+  const selectedCourse = selectedRole === "learner" ? findCourse(db, courseId) : null;
+
+  if (!userName || !emailAddress || !password || !planId) {
+    return res.status(400).json({ message: "Name, email, password, and package are required." });
+  }
+
+  if (String(password).length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters." });
+  }
+
+  if (!selectedPlan) {
+    return res.status(400).json({ message: "Please choose a valid package." });
+  }
+
+  if (selectedRole === "learner" && !selectedCourse) {
+    return res.status(400).json({ message: "Please choose a valid learner course." });
+  }
+
+  if (db.users.some((user) => user.email.toLowerCase() === emailAddress)) {
+    return res.status(409).json({ message: "A user with that email already exists." });
+  }
+
+  const user = {
+    id: uid("user"),
+    name: userName,
+    email: emailAddress,
+    role: selectedRole,
+    planId: selectedPlan.id,
+    passwordHash: await bcrypt.hash(password, 10),
+    joinedAt: new Date().toISOString(),
+    lastActiveAt: new Date().toISOString(),
+    profile: {
+      title: selectedRole === "admin" ? "Smart Tech administrator" : "New Smart Tech learner",
+      city: "",
+      goal: selectedRole === "admin" ? "Manage learner outcomes and course quality" : "Become job ready with practical tech skills"
+    }
+  };
+
+  db.users.push(user);
+  if (selectedRole === "learner") {
+    db.progress.push(createProgressRecord(user.id, selectedCourse));
+  }
+  writeDb(db);
+
+  res.status(201).json({ user: publicUser(user) });
 });
 
 app.post("/api/admin/courses", requireAuth, requireAdmin, (req, res) => {

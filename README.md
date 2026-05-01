@@ -71,12 +71,14 @@ The backend creates `server/data/db.json` automatically from the sample seed dat
 ```bash
 PORT=4000
 CLIENT_URL=http://localhost:5199
+VITE_API_URL=http://localhost:4000
+VITE_API_PROXY_TARGET=http://localhost:4000
 JWT_SECRET=replace-with-a-long-random-secret
 DATA_FILE=server/data/db.json
 PAYMENT_PROVIDER=placeholder-payfast-yoco-stripe
 ```
 
-For production, set a strong `JWT_SECRET`, configure a real payment provider, and migrate the JSON store to PostgreSQL using the Prisma schema blueprint.
+For production, set a strong `JWT_SECRET`, set `CLIENT_URL` to your Vercel frontend URL on Render, configure `VITE_API_URL` to your Render API URL on Vercel, configure a real payment provider, and migrate the JSON store to PostgreSQL using the Prisma schema blueprint.
 
 ## Folder Structure
 
@@ -103,8 +105,9 @@ server/
 
 ## Included Features
 
-- Learner registration and login
+- Learner registration and login with course and package selection
 - Admin login with protected admin route
+- Admin-created learner and admin accounts
 - Role-based route protection
 - Learner dashboard with current course, progress percentage, completed chapters, upcoming topics, quiz scores, certification prep, and next step
 - Visual Data Analyst Roadmap from Month 1 to Month 6
@@ -159,6 +162,7 @@ The demo uses JSON for zero-setup local development. The production-ready model 
 - `POST /api/quizzes/:quizId/attempt`
 - `PUT /api/profile`
 - `GET /api/admin/summary`
+- `POST /api/admin/users`
 - `POST /api/admin/courses`
 - `PUT /api/admin/courses/:courseId`
 - `DELETE /api/admin/courses/:courseId`

@@ -1,14 +1,30 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BrandLogo from "../components/BrandLogo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { apiFetch } from "../utils/api.js";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", courseId: "", planId: "" });
+  const [options, setOptions] = useState({ courses: [], pricingPlans: [] });
+  const [loadingOptions, setLoadingOptions] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    apiFetch("/api/bootstrap")
+      .then((payload) => {
+        setOptions({
+          courses: payload.courses || [],
+          pricingPlans: payload.pricingPlans || []
+        });
+        setError("");
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoadingOptions(false));
+  }, []);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -30,6 +46,7 @@ export default function Register() {
       <form className="auth-card" onSubmit={submit}>
         <h1>Create your learner account</h1>
         <p>Your account starts with practical mentor-led tech training.</p>
+        {loadingOptions ? <div className="form-success">Loading course options...</div> : null}
         <label>
           Full name
           <input
@@ -57,8 +74,40 @@ export default function Register() {
             required
           />
         </label>
+        <label>
+          Course
+          <select
+            value={form.courseId}
+            onChange={(event) => setForm((current) => ({ ...current, courseId: event.target.value }))}
+            required
+            disabled={loadingOptions}
+          >
+            <option value="">Select your course</option>
+            {options.courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.title} - {course.duration}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Package
+          <select
+            value={form.planId}
+            onChange={(event) => setForm((current) => ({ ...current, planId: event.target.value }))}
+            required
+            disabled={loadingOptions}
+          >
+            <option value="">Select your package</option>
+            {options.pricingPlans.map((plan) => (
+              <option key={plan.id} value={plan.id}>
+                {plan.name} - R{plan.price.toLocaleString("en-ZA")} / {plan.cadence}
+              </option>
+            ))}
+          </select>
+        </label>
         {error ? <div className="form-error">{error}</div> : null}
-        <button className="button button-primary" type="submit" disabled={submitting}>
+        <button className="button button-primary" type="submit" disabled={submitting || loadingOptions}>
           {submitting ? "Creating..." : "Register"}
         </button>
         <p className="auth-link">
